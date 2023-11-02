@@ -157,14 +157,17 @@ aw_watcher_zoom_a = Analysis(
     pathex=[],
     binaries=[
         (
-            awz_location / "aw_watcher_zoom",
-            "aw_watcher_zoom",
+            awz_location / "aw_watcher_zoom",  # Source
+            "aw-watcher-zoom",  # Target
         )
     ]
     if platform.system() == "Darwin"
     else [],
     datas=[
-        (awz_location / "aw_watcher_zoom")
+        (
+            awz_location / "aw_watcher_zoom",  # Source
+            "aw-watcher-zoom",  # Target
+        )
     ],
     hiddenimports=[],
     hookspath=[],
