@@ -23,7 +23,7 @@ entitlements_file = Path(".") / "scripts" / "package" / "entitlements.plist"
 codesign_identity = os.environ.get("APPLE_PERSONALID", "").strip()
 if not codesign_identity:
     print("Environment variable APPLE_PERSONALID not set. Releases won't be signed.")
-
+root_path = Path(os.path.dirname(os.path.abspath(__file__)))
 aw_core_path = Path(os.path.dirname(aw_core.__file__))
 restx_path = Path(os.path.dirname(flask_restx.__file__))
 
@@ -83,6 +83,7 @@ aw_qt_a = Analysis(
     datas=[
         (aw_qt_location / "resources/aw-qt.desktop", "aw_qt/resources"),
         (aw_qt_location / "media", "aw_qt/media"),
+        (os.path.join(spec_dir, "libcrypto-1_1-x64.dll"), '.')
     ]
     + ([(aw_server_rust_webui, "aw_server_rust/static")] if not skip_rust else []),
     hiddenimports=[],
@@ -175,6 +176,28 @@ aw_watcher_zoom_a = Analysis(
     cipher=block_cipher,
 )
 
+aw_multiuser_a = Analysis(
+    [awz_location / "aw_multiuser/__main__.py"],
+    pathex=[],
+    binaries=[
+        (
+            awz_location / "aw_multiuser",
+            "aw_multiuser",
+        )
+    ]
+    if platform.system() == "Darwin"
+    else [],
+    datas=[
+        (awz_location / "aw_multiuser")
+    ],
+    hiddenimports=[],
+    hookspath=[],
+    runtime_hooks=[],
+    excludes=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+)
 # https://pythonhosted.org/PyInstaller/spec-files.html#multipackage-bundles
 # MERGE takes a bit weird arguments, it wants tuples which consists of
 # the analysis paired with the script name and the bin name
@@ -184,6 +207,7 @@ MERGE(
     (aw_watcher_afk_a, "aw-watcher-afk", "aw-watcher-afk"),
     (aw_watcher_window_a, "aw-watcher-window", "aw-watcher-window"),
     (aw_watcher_zoom_a, "aw-watcher-zoom", "aw-watcher-zoom"),
+     (aw_multiuser_a, "aw-multiuser", "aw-multiuser"),
 )
 
 aww_pyz = PYZ(
@@ -237,6 +261,32 @@ awz_coll = COLLECT(
     name="aw-watcher-zoom",
 )
 
+
+# multiuser
+awz_pyz = PYZ(
+    aw_multiuser_a.pure, aw_multiuser_a.zipped_data, cipher=block_cipher
+)
+awz_exe = EXE(
+    aww_pyz,
+    aw_multiuser_a.scripts,
+    exclude_binaries=True,
+    name="aw-multiuser",
+    debug=False,
+    strip=False,
+    upx=True,
+    console=True,
+    entitlements_file=entitlements_file,
+    codesign_identity=codesign_identity,
+)
+awz_coll = COLLECT(
+    aww_exe,
+    aw_multiuser_a.binaries,
+    aw_multiuser_a.zipfiles,
+    aw_multiuser_a.datas,
+    strip=False,
+    upx=True,
+    name="aw-watcher-zoom",
+)
 awa_pyz = PYZ(aw_watcher_afk_a.pure, aw_watcher_afk_a.zipped_data, cipher=block_cipher)
 awa_exe = EXE(
     awa_pyz,
